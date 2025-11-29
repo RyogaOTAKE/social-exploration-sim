@@ -143,13 +143,25 @@
         .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
         .legend-mark { width: 16px; height: 16px; margin-right: 10px; display: inline-block; border: 1px solid #777; }
     </style>
-  <script type="module" crossorigin src="/social-exploration-sim/assets/index-BQLF9-eH.js"></script>
+  <script type="module" crossorigin src="/social-exploration-sim/assets/index-DIHWn27W.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Canvas Area -->
         <div class="canvas-container">
             <h2 class="header-title">社会性昆虫 マルチエージェント探索シミュレーション <span id="infoBtn" class="info-btn" title="説明を表示">i</span></h2>
+            
+            <!-- 統計パネル -->
+            <div id="statsPanel" style="position: absolute; top: 20px; right: 20px; background: rgba(30, 30, 30, 0.8); padding: 10px 15px; border-radius: 8px; border: 1px solid #555; font-size: 0.85rem; color: #ddd; z-index: 10; display: flex; flex-direction: column; gap: 5px; min-width: 150px;">
+                <div style="display: flex; justify-content: space-between;"><span>総個体数:</span> <span id="stat-total" style="font-weight: bold;">0</span></div>
+                <div style="width: 100%; height: 1px; background: #555; margin: 2px 0;"></div>
+                <div style="display: flex; justify-content: space-between; color: #aaa;"><span>探索中:</span> <span id="stat-foraging">0</span></div>
+                <div style="display: flex; justify-content: space-between; color: #f88;"><span>帰巣中:</span> <span id="stat-returning">0</span></div>
+                <div style="width: 100%; height: 1px; background: #555; margin: 2px 0;"></div>
+                <div style="display: flex; justify-content: space-between; color: rgb(255, 150, 50);"><span>興奮 (発見):</span> <span id="stat-excited2">0</span></div>
+                <div style="display: flex; justify-content: space-between; color: rgb(255, 255, 100);"><span>興奮 (伝播):</span> <span id="stat-excited1">0</span></div>
+            </div>
+
             <div class="canvases-wrapper">
                 <div style="text-align: center;">
                     <div style="margin-bottom: 5px; color: #aaa; font-size: 0.9rem;">通常モード</div>
@@ -196,13 +208,31 @@
                 </div>
                 <div class="control-group">
                     <label>餌場の数 (Foods)</label>
-                    <input type="range" id="foodCount" min="1" max="8" value="2">
+                    <input type="range" id="foodCount" min="0" max="8" value="2">
                     <span class="values" id="val-foodCount">2</span>
                 </div>
                 <div class="control-group">
                     <label style="display:flex; align-items:center; cursor:pointer;">
                         <input type="checkbox" id="enableSortieRegulation" style="margin-right:8px;">
                         <span style="font-size: 0.9rem;">規則B: 出撃制御 (Wait & Surge)</span>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="enableGiveUp" style="margin-right:8px;">
+                        <span style="font-size: 0.9rem;">規則A: 探索打ち切り (Give-up)</span>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="enableTunnels" style="margin-right:8px;">
+                        <span style="font-size: 0.9rem;">蟻道形成 (Tunnels)</span>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="enableHarvestTime" style="margin-right:8px;">
+                        <span style="font-size: 0.9rem;">採集時間あり (Harvest Time)</span>
                     </label>
                 </div>
             </fieldset>
@@ -236,9 +266,14 @@
             <fieldset class="control-section">
                 <legend>フェロモン特性</legend>
                 <div class="control-group">
-                    <label>蒸発率 (Evaporation)</label>
-                    <input type="range" id="evapRate" min="0.90" max="0.999" step="0.001" value="0.985">
-                    <span class="values" id="val-evapRate">0.985</span>
+                    <label>探索フェロモン蒸発率 (Blue/Home)</label>
+                    <input type="range" id="evapRateHome" min="0.90" max="0.999" step="0.001" value="0.995">
+                    <span class="values" id="val-evapRateHome">0.995</span>
+                </div>
+                <div class="control-group">
+                    <label>帰巣フェロモン蒸発率 (Red/Food)</label>
+                    <input type="range" id="evapRateFood" min="0.90" max="0.999" step="0.001" value="0.950">
+                    <span class="values" id="val-evapRateFood">0.950</span>
                 </div>
                 <div class="control-group">
                     <label>探索抵抗 (Resistance)</label>
@@ -345,7 +380,7 @@
             <ul style="font-size: 0.9rem; color: #ccc; padding-left: 20px; line-height: 1.6; margin: 0;">
                 <li><strong>個体数:</strong> アリの数が多いほど、フェロモンの道が強化されやすくなります。</li>
                 <li><strong>出現速度:</strong> 巣からエージェントが出現するペースです。</li>
-                <li><strong>蒸発率:</strong> フェロモンが消える速さです。高い値（1に近い）ほど長く残ります。適切に蒸発しないと、古い情報が残り続けて迷子になりやすくなります。</li>
+                <li><strong>蒸発率:</strong> フェロモンが消える速さです。探索フェロモン（青）は長持ちし、足跡として機能します。帰巣フェロモン（赤）は早く消え、情報の鮮度を保ちます。</li>
                 <li><strong>センサー:</strong> アリの視野です。角度や距離を変えると、探索の効率や動きの滑らかさが変化します。</li>
                 <li><strong>単一フェロモンモード:</strong> 青と赤のフェロモンを区別せず、全て「青」として扱います。</li>
                 <li><strong>Uターン:</strong> フェロモンが薄い場所などで行う引き返し行動の頻度です。</li>
@@ -353,6 +388,9 @@
                 <li><strong>興奮時旋回倍率:</strong> 興奮状態のアリがフェロモンの濃い方向へ向く強さです。高いほど、濃いフェロモンに敏感に反応して急旋回し、道を外れにくくなります。</li>
                 <li><strong>探索抵抗:</strong> フェロモンがない場所への進みにくさです。高くすると、アリはフェロモンのある道（自分や仲間が通った場所）から外れにくくなります。</li>
                 <li><strong>規則B (出撃制御):</strong> 興奮した個体が帰巣するまで出撃を控えます（偵察兵を除く）。帰巣すると一定時間一斉に出撃し、効率的な動員を行います。</li>
+                <li><strong>規則A (探索打ち切り):</strong> 一定時間フェロモンが見つからないと探索を諦め、フェロモンのある場所（仲間がいる場所）を優先的に探して合流します。</li>
+                <li><strong>蟻道形成:</strong> シロアリのように、通過した場所に物理的な道（茶色）を作り、移動しやすくします。フェロモンと違い蒸発しません。</li>
+                <li><strong>採集時間:</strong> 餌場に到達した際、即座に戻らず一定時間留まります（開拓・採集行動）。</li>
             </ul>
         </div>
     </div>
