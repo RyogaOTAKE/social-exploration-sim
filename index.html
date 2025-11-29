@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Ant Colony Simulation</title>
+    <style>
+        body {
+            background-color: #222;
+            color: #eee;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        canvas {
+            background-color: #000;
+            border: 1px solid #555;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            image-rendering: pixelated; /* ピクセルをくっきり表示 */
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 800px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label { font-size: 0.85rem; margin-bottom: 5px; }
+        input[type="range"] { cursor: pointer; }
+        .values { font-size: 0.8rem; color: #aaa; text-align: right;}
+
+        /* Modal styles */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.8); 
+        }
+        .modal-content {
+            background-color: #333;
+            margin: 10% auto; 
+            padding: 20px;
+            border: 1px solid #555;
+            width: 80%; 
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .close {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover, .close:focus { color: white; }
+        .info-btn {
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 10px;
+            color: #888;
+            border: 1px solid #888;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            vertical-align: middle;
+        }
+        .info-btn:hover { color: #fff; border-color: #fff; background-color: #555; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+        .legend-mark { width: 16px; height: 16px; margin-right: 10px; display: inline-block; border: 1px solid #777; }
+    </style>
+</head>
+<body>
+    <h2>社会性昆虫 マルチエージェント探索シミュレーション <span id="infoBtn" class="info-btn" title="説明を表示">i</span></h2>
+    <canvas id="simCanvas" width="600" height="600"></canvas>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>個体数 (Agents)</label>
+            <input type="range" id="agentCount" min="10" max="2000" value="500">
+            <span class="values" id="val-agentCount">500</span>
+        </div>
+        <div class="control-group">
+            <label>巣の数 (Nests)</label>
+            <input type="range" id="nestCount" min="1" max="5" value="1">
+            <span class="values" id="val-nestCount">1</span>
+        </div>
+        <div class="control-group">
+            <label>餌場の数 (Foods)</label>
+            <input type="range" id="foodCount" min="1" max="8" value="4">
+            <span class="values" id="val-foodCount">4</span>
+        </div>
+        <div class="control-group">
+            <label style="display:flex; align-items:center; cursor:pointer; margin-top: 10px;">
+                <input type="checkbox" id="singlePheromoneMode" style="margin-right:8px;">
+                <span style="font-size: 0.9rem;">フェロモンを区別しない (検証用)</span>
+            </label>
+        </div>
+        <div class="control-group">
+            <label>移動速度 (Speed)</label>
+            <input type="range" id="moveSpeed" min="0.5" max="5.0" step="0.1" value="1.5">
+            <span class="values" id="val-moveSpeed">1.5</span>
+        </div>
+        <div class="control-group">
+            <label>蒸発率 (Evaporation)</label>
+            <input type="range" id="evapRate" min="0.90" max="0.999" step="0.001" value="0.985">
+            <span class="values" id="val-evapRate">0.985</span>
+        </div>
+        <div class="control-group">
+            <label>センサー角度 (Sensor Angle)</label>
+            <input type="range" id="sensorAngle" min="10" max="90" value="45">
+            <span class="values" id="val-sensorAngle">45</span>
+        </div>
+        <div class="control-group">
+            <label>センサー距離 (Sensor Dist)</label>
+            <input type="range" id="sensorDist" min="5" max="50" value="20">
+            <span class="values" id="val-sensorDist">20</span>
+        </div>
+        <div class="control-group" style="justify-content: center;">
+            <button id="resetBtn" style="padding: 5px 15px; cursor: pointer;">リセット / フェロモン消去</button>
+        </div>
+    </div>
+
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>シミュレーション要素の説明</h3>
+            <div class="legend-item">
+                <div class="legend-mark" style="background-color: #fff; border-radius: 50%; width: 6px; height: 6px; border: none;"></div>
+                <span>アリ (エージェント)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-mark" style="border: 2px solid #66f; background: transparent; border-radius: 50%;"></div>
+                <span>巣 (Home) - アリの出発地点</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-mark" style="border: 2px solid #f66; background: transparent; border-radius: 50%;"></div>
+                <span>餌場 (Food) - アリの目的地</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-mark" style="background-color: rgba(100, 100, 255, 0.8);"></div>
+                <span>青い軌跡: 探索フェロモン (巣から出て餌を探すアリが残す)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-mark" style="background-color: rgba(255, 100, 100, 0.8);"></div>
+                <span>赤い軌跡: 帰巣フェロモン (餌を持って巣に帰るアリが残す)</span>
+            </div>
+            <p style="font-size: 0.9rem; color: #ccc; margin-top: 15px; line-height: 1.5;">
+                アリはフェロモンを感知して移動方向を決めます。<br>
+                餌を見つけると「帰巣フェロモン(赤)」を出しながら巣へ戻ります。<br>
+                巣に戻ると「探索フェロモン(青)」を出しながら再び餌を探しに行きます。<br>
+                時間が経つとフェロモンは蒸発して消えます。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Modal logic
+        const modal = document.getElementById("infoModal");
+        const btn = document.getElementById("infoBtn");
+        const span = document.getElementsByClassName("close")[0];
+
+        if (btn) btn.onclick = function() { modal.style.display = "block"; }
+        if (span) span.onclick = function() { modal.style.display = "none"; }
+        window.onclick = function(event) {
+            if (event.target == modal) { modal.style.display = "none"; }
+        }
+    </script>
+
+    <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
