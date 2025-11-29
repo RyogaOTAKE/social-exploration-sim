@@ -8,35 +8,89 @@
             background-color: #222;
             color: #eee;
             font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: block;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+        .canvas-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0;
+            justify-content: flex-start;
+            background-color: #222;
             padding: 20px;
+            position: relative;
+            overflow: auto;
+        }
+        .canvases-wrapper {
+            display: flex;
+            gap: 20px;
+            margin-top: 50px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         canvas {
             background-color: #000;
             border: 1px solid #555;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            image-rendering: pixelated; /* ピクセルをくっきり表示 */
+            image-rendering: pixelated;
+            max-width: 100%;
+            height: auto;
         }
-        .controls {
-            margin-top: 15px;
+        .controls-sidebar {
+            width: 320px;
+            min-width: 320px;
+            background-color: #333;
+            border-left: 1px solid #444;
+            padding: 20px;
+            overflow-y: auto;
             display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            background: #333;
-            padding: 15px;
-            border-radius: 8px;
-            max-width: 800px;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+        }
+        .control-section {
+            border: 1px solid #555;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #3a3a3a;
+            margin: 0;
+        }
+        .control-section legend {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #ccc;
+            padding: 0 5px;
         }
         .control-group {
             display: flex;
             flex-direction: column;
+            margin-bottom: 12px;
+        }
+        .control-group:last-child {
+            margin-bottom: 0;
         }
         label { font-size: 0.85rem; margin-bottom: 5px; }
         input[type="range"] { cursor: pointer; }
         .values { font-size: 0.8rem; color: #aaa; text-align: right;}
+        
+        .header-title {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            margin: 0;
+            color: #888;
+            font-size: 1.2rem;
+            z-index: 10;
+        }
 
         /* Modal styles */
         .modal {
@@ -91,40 +145,92 @@
     </style>
 </head>
 <body>
-    <h2>社会性昆虫 マルチエージェント探索シミュレーション <span id="infoBtn" class="info-btn" title="説明を表示">i</span></h2>
-    <canvas id="simCanvas" width="600" height="600"></canvas>
+    <div class="container">
+        <!-- Canvas Area -->
+        <div class="canvas-container">
+            <h2 class="header-title">社会性昆虫 マルチエージェント探索シミュレーション <span id="infoBtn" class="info-btn" title="説明を表示">i</span></h2>
+            
+            <!-- 統計パネル -->
+            <div id="statsPanel" style="position: absolute; top: 20px; right: 20px; background: rgba(30, 30, 30, 0.8); padding: 10px 15px; border-radius: 8px; border: 1px solid #555; font-size: 0.85rem; color: #ddd; z-index: 10; display: flex; flex-direction: column; gap: 5px; min-width: 150px;">
+                <div style="display: flex; justify-content: space-between;"><span>総個体数:</span> <span id="stat-total" style="font-weight: bold;">0</span></div>
+                <div style="width: 100%; height: 1px; background: #555; margin: 2px 0;"></div>
+                <div style="display: flex; justify-content: space-between; color: #aaa;"><span>探索中:</span> <span id="stat-foraging">0</span></div>
+                <div style="display: flex; justify-content: space-between; color: #f88;"><span>帰巣中:</span> <span id="stat-returning">0</span></div>
+                <div style="width: 100%; height: 1px; background: #555; margin: 2px 0;"></div>
+                <div style="display: flex; justify-content: space-between; color: rgb(255, 150, 50);"><span>興奮 (発見):</span> <span id="stat-excited2">0</span></div>
+                <div style="display: flex; justify-content: space-between; color: rgb(255, 255, 100);"><span>興奮 (伝播):</span> <span id="stat-excited1">0</span></div>
+            </div>
 
-    <div class="controls">
+            <div class="canvases-wrapper">
+                <div style="text-align: center;">
+                    <div style="margin-bottom: 5px; color: #aaa; font-size: 0.9rem;">通常モード</div>
+    <canvas id="simCanvas" width="600" height="600"></canvas>
+                </div>
+                <div style="text-align: center;">
+                    <div style="margin-bottom: 5px; color: #aaa; font-size: 0.9rem;">密度マップ</div>
+                    <canvas id="densityCanvas" width="600" height="600"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Controls -->
+        <div class="controls-sidebar">
+            <!-- Simulation Controls -->
+            <fieldset class="control-section">
+                <legend>シミュレーション操作</legend>
+                <div class="control-group" style="flex-direction: row; gap: 10px; justify-content: center;">
+                    <button id="resetBtn" style="flex: 1; padding: 8px; cursor: pointer;">リセット</button>
+                </div>
+                <div class="control-group" style="flex-direction: row; gap: 10px; justify-content: center; margin-top: 10px;">
+                    <button id="mazeBtn" style="flex: 1; padding: 8px; cursor: pointer;">迷路生成</button>
+                    <button id="clearMazeBtn" style="flex: 1; padding: 8px; cursor: pointer;">障害物クリア</button>
+                </div>
+            </fieldset>
+
+            <!-- Environment -->
+            <fieldset class="control-section">
+                <legend>環境・個体数</legend>
         <div class="control-group">
             <label>個体数 (Agents)</label>
             <input type="range" id="agentCount" min="10" max="2000" value="500">
             <span class="values" id="val-agentCount">500</span>
         </div>
-        <div class="control-group">
-            <label>巣の数 (Nests)</label>
-            <input type="range" id="nestCount" min="1" max="5" value="1">
-            <span class="values" id="val-nestCount">1</span>
-        </div>
-        <div class="control-group">
-            <label>餌場の数 (Foods)</label>
-            <input type="range" id="foodCount" min="1" max="8" value="4">
-            <span class="values" id="val-foodCount">4</span>
-        </div>
-        <div class="control-group">
-            <label style="display:flex; align-items:center; cursor:pointer; margin-top: 10px;">
-                <input type="checkbox" id="singlePheromoneMode" style="margin-right:8px;">
-                <span style="font-size: 0.9rem;">フェロモンを区別しない (検証用)</span>
-            </label>
-        </div>
+                <div class="control-group">
+                    <label>出現速度 (Spawn Rate)</label>
+                    <input type="range" id="spawnRate" min="0.1" max="50.0" step="0.1" value="5.0">
+                    <span class="values" id="val-spawnRate">5.0</span>
+                </div>
+                <div class="control-group">
+                    <label>巣の数 (Nests)</label>
+                    <input type="range" id="nestCount" min="1" max="5" value="1">
+                    <span class="values" id="val-nestCount">1</span>
+                </div>
+                <div class="control-group">
+                    <label>餌場の数 (Foods)</label>
+                    <input type="range" id="foodCount" min="1" max="8" value="2">
+                    <span class="values" id="val-foodCount">2</span>
+                </div>
+                <div class="control-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="enableSortieRegulation" style="margin-right:8px;">
+                        <span style="font-size: 0.9rem;">規則B: 出撃制御 (Wait & Surge)</span>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="enableGiveUp" style="margin-right:8px;">
+                        <span style="font-size: 0.9rem;">規則A: 探索打ち切り (Give-up)</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <!-- Agent Behavior -->
+            <fieldset class="control-section">
+                <legend>アリの行動特性</legend>
         <div class="control-group">
             <label>移動速度 (Speed)</label>
             <input type="range" id="moveSpeed" min="0.5" max="5.0" step="0.1" value="1.5">
             <span class="values" id="val-moveSpeed">1.5</span>
-        </div>
-        <div class="control-group">
-            <label>蒸発率 (Evaporation)</label>
-            <input type="range" id="evapRate" min="0.90" max="0.999" step="0.001" value="0.985">
-            <span class="values" id="val-evapRate">0.985</span>
         </div>
         <div class="control-group">
             <label>センサー角度 (Sensor Angle)</label>
@@ -136,41 +242,136 @@
             <input type="range" id="sensorDist" min="5" max="50" value="20">
             <span class="values" id="val-sensorDist">20</span>
         </div>
-        <div class="control-group" style="justify-content: center;">
-            <button id="resetBtn" style="padding: 5px 15px; cursor: pointer;">リセット / フェロモン消去</button>
+                <div class="control-group">
+                    <label>Uターン頻度 (U-Turn Chance)</label>
+                    <input type="range" id="uTurnChance" min="0" max="0.05" step="0.001" value="0.01">
+                    <span class="values" id="val-uTurnChance">0.01</span>
+                </div>
+            </fieldset>
+
+            <!-- Pheromones -->
+            <fieldset class="control-section">
+                <legend>フェロモン特性</legend>
+                <div class="control-group">
+                    <label>蒸発率 (Evaporation)</label>
+                    <input type="range" id="evapRate" min="0.90" max="0.999" step="0.001" value="0.985">
+                    <span class="values" id="val-evapRate">0.985</span>
+                </div>
+                <div class="control-group">
+                    <label>探索抵抗 (Resistance)</label>
+                    <input type="range" id="explorationResistance" min="0.0" max="1.0" step="0.01" value="0.0">
+                    <span class="values" id="val-explorationResistance">0.0</span>
+                </div>
+                <div class="control-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="singlePheromoneMode" style="margin-right:8px;" checked>
+                        <span style="font-size: 0.9rem;">フェロモンを区別しない</span>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="usePheromoneGradient" style="margin-right:8px;" checked>
+                        <span style="font-size: 0.9rem;">フェロモン濃度勾配あり</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <!-- Excitement -->
+            <fieldset class="control-section">
+                <legend>興奮・伝播モード</legend>
+                <div class="control-group">
+                    <label>興奮時速度倍率 (Excited Speed)</label>
+                    <input type="range" id="excitedSpeedMult" min="1.0" max="5.0" step="0.1" value="2.0">
+                    <span class="values" id="val-excitedSpeedMult">2.0</span>
+                </div>
+                <div class="control-group">
+                    <label>興奮伝播確率 (Propagation)</label>
+                    <input type="range" id="propagationChance" min="0.0" max="1.0" step="0.01" value="0.1">
+                    <span class="values" id="val-propagationChance">0.1</span>
+                </div>
+                <div class="control-group">
+                    <label>興奮減衰率 (Decay)</label>
+                    <input type="range" id="excitedDecayRate" min="0.0" max="0.1" step="0.001" value="0.01">
+                    <span class="values" id="val-excitedDecayRate">0.01</span>
+                </div>
+                <div class="control-group">
+                    <label>興奮時旋回倍率 (Turn Mult)</label>
+                    <input type="range" id="excitedTurnSpeedMult" min="1.0" max="10.0" step="0.1" value="3.0">
+                    <span class="values" id="val-excitedTurnSpeedMult">3.0</span>
+                </div>
+            </fieldset>
         </div>
     </div>
 
     <div id="infoModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h3>シミュレーション要素の説明</h3>
+            <h3 style="margin-top: 0;">シミュレーションの仕組み</h3>
+
+            <h4 style="margin-bottom: 10px; border-bottom: 1px solid #555; padding-bottom: 5px;">1. フェロモンの種類と役割</h4>
             <div class="legend-item">
                 <div class="legend-mark" style="background-color: #fff; border-radius: 50%; width: 6px; height: 6px; border: none;"></div>
-                <span>アリ (エージェント)</span>
+                <span>通常アリ (エージェント)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-mark" style="background-color: rgb(255, 150, 50); border-radius: 50%; width: 6px; height: 6px; border: none;"></div>
+                <span>興奮アリ (餌発見): 高速・伝播源</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-mark" style="background-color: rgb(255, 255, 100); border-radius: 50%; width: 6px; height: 6px; border: none;"></div>
+                <span>興奮アリ (伝播): 高速</span>
             </div>
             <div class="legend-item">
                 <div class="legend-mark" style="border: 2px solid #66f; background: transparent; border-radius: 50%;"></div>
-                <span>巣 (Home) - アリの出発地点</span>
+                <span>巣 (Home): 出発地点</span>
             </div>
             <div class="legend-item">
                 <div class="legend-mark" style="border: 2px solid #f66; background: transparent; border-radius: 50%;"></div>
-                <span>餌場 (Food) - アリの目的地</span>
+                <span>餌場 (Food): 目的地</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-mark" style="background-color: #888; width: 12px; height: 12px; border-radius: 2px;"></div>
+                <span>障害物 (壁): 通過不可</span>
             </div>
             <div class="legend-item">
                 <div class="legend-mark" style="background-color: rgba(100, 100, 255, 0.8);"></div>
-                <span>青い軌跡: 探索フェロモン (巣から出て餌を探すアリが残す)</span>
+                <span>青い軌跡: 探索フェロモン (巣への道しるべ)</span>
             </div>
             <div class="legend-item">
                 <div class="legend-mark" style="background-color: rgba(255, 100, 100, 0.8);"></div>
-                <span>赤い軌跡: 帰巣フェロモン (餌を持って巣に帰るアリが残す)</span>
+                <span>赤い軌跡: 帰巣フェロモン (餌場への道しるべ)</span>
             </div>
-            <p style="font-size: 0.9rem; color: #ccc; margin-top: 15px; line-height: 1.5;">
-                アリはフェロモンを感知して移動方向を決めます。<br>
-                餌を見つけると「帰巣フェロモン(赤)」を出しながら巣へ戻ります。<br>
-                巣に戻ると「探索フェロモン(青)」を出しながら再び餌を探しに行きます。<br>
-                時間が経つとフェロモンは蒸発して消えます。
-            </p>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #555; padding-bottom: 5px;">2. アリの行動ルール</h4>
+            <ul style="font-size: 0.9rem; color: #ccc; padding-left: 20px; line-height: 1.6; margin: 0;">
+                <li style="margin-bottom: 8px;"><strong>探索 (青いフェロモンを置く):</strong> <br>巣から出て餌を探します。通った道に「青いフェロモン」を残します。巣から遠ざかるほど薄くなるように塗布量を調整するため、フェロモンの濃度勾配ができます。</li>
+                <li style="margin-bottom: 8px;"><strong>帰巣 (赤いフェロモンを置く):</strong> <br>餌を見つけると赤くフェロモンを残しながら巣へ戻ります。これも餌場から遠ざかるほど薄くなります。</li>
+                <li style="margin-bottom: 8px;"><strong>判断基準 (センサー):</strong> <br>
+                    アリは前方3方向（左前、正面、右前）のフェロモン濃度を感知します。
+                    <ul style="margin: 5px 0 0 0; padding-left: 20px;">
+                        <li>正面が濃い場合: そのまま直進します。</li>
+                        <li>左右どちらかが濃い場合: 濃い方向へ回転します。</li>
+                        <li>正面が薄く左右が濃い場合: ランダムに大きく旋回して方向を変えます（行き止まり回避）。</li>
+                    </ul>
+                </li>
+                <li><strong>ゆらぎと壁:</strong> <br>
+                    フェロモンがない場所でも探索できるよう、常にわずかに進行方向をランダムに変えながら歩きます（ランダムウォーク）。また、壁にぶつかると跳ね返ります。</li>
+            </ul>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #555; padding-bottom: 5px;">3. パラメータの影響</h4>
+            <ul style="font-size: 0.9rem; color: #ccc; padding-left: 20px; line-height: 1.6; margin: 0;">
+                <li><strong>個体数:</strong> アリの数が多いほど、フェロモンの道が強化されやすくなります。</li>
+                <li><strong>出現速度:</strong> 巣からエージェントが出現するペースです。</li>
+                <li><strong>蒸発率:</strong> フェロモンが消える速さです。高い値（1に近い）ほど長く残ります。適切に蒸発しないと、古い情報が残り続けて迷子になりやすくなります。</li>
+                <li><strong>センサー:</strong> アリの視野です。角度や距離を変えると、探索の効率や動きの滑らかさが変化します。</li>
+                <li><strong>単一フェロモンモード:</strong> 青と赤のフェロモンを区別せず、全て「青」として扱います。</li>
+                <li><strong>Uターン:</strong> フェロモンが薄い場所などで行う引き返し行動の頻度です。</li>
+                <li><strong>興奮モード:</strong> 餌を見つけた個体（オレンジ）から周囲へ「興奮（黄色）」が伝わります。興奮状態のアリは高速で移動します。減衰率を設定すると、時間とともに落ち着きます。</li>
+                <li><strong>興奮時旋回倍率:</strong> 興奮状態のアリがフェロモンの濃い方向へ向く強さです。高いほど、濃いフェロモンに敏感に反応して急旋回し、道を外れにくくなります。</li>
+                <li><strong>探索抵抗:</strong> フェロモンがない場所への進みにくさです。高くすると、アリはフェロモンのある道（自分や仲間が通った場所）から外れにくくなります。</li>
+                <li><strong>規則B (出撃制御):</strong> 興奮した個体が帰巣するまで出撃を控えます（偵察兵を除く）。帰巣すると一定時間一斉に出撃し、効率的な動員を行います。</li>
+                <li><strong>規則A (探索打ち切り):</strong> 一定時間フェロモンが見つからないと探索を諦め、フェロモンのある場所（仲間がいる場所）を優先的に探して合流します。</li>
+            </ul>
         </div>
     </div>
 
